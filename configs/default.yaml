@@ -1,0 +1,109 @@
+# GRPO Trainer Configuration - Default
+# =====================================
+
+model:
+  name: "Qwen/Qwen2.5-1.5B-Instruct"
+  torch_dtype: "bfloat16"
+  attn_implementation: "flash_attention_2"  # or "eager" if flash-attn not available
+  device_map: "auto"
+  trust_remote_code: true
+  use_cache: false
+  
+  # Quantization (optional)
+  load_in_8bit: false
+  load_in_4bit: false
+  bnb_4bit_compute_dtype: "bfloat16"
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_use_double_quant: true
+
+lora:
+  enabled: true
+  r: 16
+  lora_alpha: 64
+  lora_dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "up_proj"
+    - "down_proj"
+    - "gate_proj"
+  task_type: "CAUSAL_LM"
+  bias: "none"
+
+data:
+  name: "gsm8k"
+  subset: "main"
+  split: "train"
+  eval_split: "test"
+  use_one_shot: true
+  use_few_shot: false
+  num_few_shot_examples: 3
+  max_samples: null
+  shuffle: true
+  seed: 42
+
+reward:
+  correctness_weight: 2.0
+  format_weight: 0.5
+  integer_weight: 0.5
+  xml_count_weight: 0.5
+  length_penalty_weight: 0.0
+  max_length_for_penalty: 1024
+  reasoning_quality_weight: 0.0
+  strict_format: false
+
+training:
+  output_dir: "outputs/grpo-default"
+  run_name: "grpo-gsm8k"
+  
+  # Optimization
+  learning_rate: 5.0e-6
+  adam_beta1: 0.9
+  adam_beta2: 0.99
+  weight_decay: 0.1
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  max_grad_norm: 0.1
+  
+  # Batch sizes
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 2
+  
+  # GRPO specific
+  num_generations: 8
+  max_prompt_length: 256
+  max_completion_length: 786
+  temperature: 0.7
+  top_p: 0.9
+  
+  # Duration
+  num_train_epochs: 1
+  max_steps: -1
+  
+  # Logging & saving
+  logging_steps: 1
+  save_steps: 100
+  save_total_limit: 3
+  eval_steps: 100
+  eval_strategy: "steps"
+  
+  # Precision
+  bf16: true
+  fp16: false
+  
+  # Distributed (optional)
+  deepspeed: null
+  fsdp: null
+  fsdp_config: null
+  
+  # Reporting
+  report_to: "wandb"
+  log_on_each_node: false
+  
+  # Resume
+  resume_from_checkpoint: null
+  
+  seed: 42

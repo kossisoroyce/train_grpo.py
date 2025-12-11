@@ -1,0 +1,75 @@
+# GRPO Trainer Configuration - MATH Competition Dataset
+# =====================================================
+
+model:
+  name: "Qwen/Qwen2.5-3B-Instruct"
+  torch_dtype: "bfloat16"
+  attn_implementation: "flash_attention_2"
+  device_map: "auto"
+  trust_remote_code: true
+  use_cache: false
+
+lora:
+  enabled: true
+  r: 32
+  lora_alpha: 64
+  lora_dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "up_proj"
+    - "down_proj"
+    - "gate_proj"
+  task_type: "CAUSAL_LM"
+  bias: "none"
+
+data:
+  name: "math"
+  split: "train"
+  eval_split: "test"
+  use_one_shot: true
+  use_few_shot: false
+  shuffle: true
+  seed: 42
+
+reward:
+  correctness_weight: 2.0
+  format_weight: 0.5
+  integer_weight: 0.0  # MATH answers are not always integers
+  xml_count_weight: 0.5
+  reasoning_quality_weight: 0.5  # More weight on reasoning
+  length_penalty_weight: 0.1
+  max_length_for_penalty: 1500
+  strict_format: false
+
+training:
+  output_dir: "outputs/grpo-math"
+  run_name: "grpo-math-competition"
+  
+  learning_rate: 3.0e-6
+  adam_beta1: 0.9
+  adam_beta2: 0.99
+  weight_decay: 0.1
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  max_grad_norm: 0.1
+  
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 4
+  
+  num_generations: 8
+  max_prompt_length: 512  # Longer prompts for MATH
+  max_completion_length: 1024  # Longer completions for complex reasoning
+  
+  num_train_epochs: 2  # More epochs for harder dataset
+  logging_steps: 1
+  save_steps: 500
+  save_total_limit: 3
+  eval_steps: 500
+  
+  bf16: true
+  report_to: "wandb"
+  seed: 42

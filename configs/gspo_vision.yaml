@@ -1,0 +1,105 @@
+# GRPO Trainer Configuration - GSPO for Vision Models
+# ====================================================
+# Based on Unsloth's Vision RL strategies
+# See: https://docs.unsloth.ai/new/vision-reinforcement-learning-vlm-rl
+
+model:
+  name: "Qwen/Qwen2.5-VL-7B-Instruct"
+  torch_dtype: "bfloat16"
+  attn_implementation: "flash_attention_2"
+  device_map: "auto"
+  trust_remote_code: true
+  use_cache: false
+  
+  # 4-bit quantization for memory efficiency
+  load_in_4bit: true
+  bnb_4bit_compute_dtype: "float16"
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_use_double_quant: true
+
+lora:
+  enabled: true
+  r: 16
+  lora_alpha: 16  # Recommended: alpha == r for vision models
+  lora_dropout: 0
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "up_proj"
+    - "down_proj"
+    - "gate_proj"
+  task_type: "CAUSAL_LM"
+  bias: "none"
+
+data:
+  name: "gsm8k"
+  subset: "main"
+  split: "train"
+  use_one_shot: false  # Vision models don't need one-shot
+  shuffle: true
+  seed: 42
+
+reward:
+  correctness_weight: 2.0
+  format_weight: 1.0
+  integer_weight: 0.5
+  xml_count_weight: 0.0  # Use custom delimiters instead
+  reasoning_quality_weight: 0.0
+  
+  # VLM-specific: penalize gibberish outputs
+  gibberish_penalty_weight: 1.0
+  gibberish_threshold: 0.5
+  
+  # Custom delimiters (Unsloth style)
+  custom_delimiters:
+    enabled: true
+    reasoning_start: "<REASONING>"
+    reasoning_end: "</REASONING>"
+    answer_start: "<SOLUTION>"
+    answer_end: "</SOLUTION>"
+
+training:
+  output_dir: "outputs/gspo-vision"
+  run_name: "gspo-vision-rl"
+  
+  # Optimizer - use 8-bit for memory efficiency
+  learning_rate: 5.0e-6
+  adam_beta1: 0.9
+  adam_beta2: 0.99
+  weight_decay: 0.1
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  max_grad_norm: 0.1
+  optim: "adamw_8bit"  # 8-bit optimizer saves ~50% memory
+  
+  # Batch sizes - smaller for vision models
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 2
+  
+  # GRPO specific - lower for vision models
+  num_generations: 4
+  max_prompt_length: 1024
+  max_completion_length: 1024
+  
+  # GSPO configuration (enhanced GRPO)
+  loss_type: "dr_grpo"  # GSPO variant
+  importance_sampling_level: "sequence"
+  mask_truncated_completions: false
+  
+  # Training duration
+  num_train_epochs: 1
+  
+  # Logging
+  logging_steps: 1
+  log_completions: false
+  save_steps: 60
+  save_total_limit: 2
+  
+  # Precision
+  bf16: true
+  
+  # Reporting
+  report_to: "wandb"
+  seed: 42
